@@ -1,4 +1,3 @@
-import { formatAmount } from '@/lib/utils';
 
 /* we use a react built-in library component called countup to add a beautiful number animations but the countup component uses useRef hook which is a client side property. so we have to define our component as useRef. To do this we can:
 
