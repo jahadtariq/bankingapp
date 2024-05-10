@@ -65,6 +65,9 @@ export const formatDateTime = (dateString: Date) => {
   };
 };
 
+// formatAmount converts the number to currency format
+// we can change the currecny format by changing the Intl.NumberFormat function inside it
+
 export function formatAmount(amount: number): string {
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
