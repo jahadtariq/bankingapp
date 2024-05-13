@@ -22,12 +22,17 @@ const DoughnutChart = (
 
     /* Now we need to format the data for our doughnut chart componet the documnetation link is https://www.chartjs.org/docs/latest/general/data-structures.html */
 
+    // getting dynamic data from database
+    const accountNames = accounts.map((account)=>account.name);
+
+    const balances = accounts.map((a) => a.currentBalance);
+
     const data = {
         // first item is datasets
         datasets: [
             {
                 label: "Amount", //what the data is e.g number of cars or in our case its the amount in account
-                data: [1250,2500,3750], //the data
+                data: balances, //the data
                 backgroundColor: ["#0747b6", '#2265d8', "#2f91fa"] //assigning each data a different color the assignment is same as the order for instance 1250 will have color of 0747b6 and so on.
             }
         ],
