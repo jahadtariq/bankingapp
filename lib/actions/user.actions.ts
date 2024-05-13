@@ -52,7 +52,7 @@ export const signIn = async ({email, password}:signInProps) => {
             userId: session.userId
         });
 
-        return parseStringify(response);
+        return parseStringify(user);
 
     } catch (error) {
         console.log("Error",error);

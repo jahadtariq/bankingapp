@@ -16,7 +16,7 @@ const RightSidebar = ({user,transactions,banks}:RightSidebarProps) => {
                 </div>
                 <div className="profile-details">
                     <p className="profile-name">
-                        `${user.firstName} ${user.lastName}`
+                        ${user.firstName} ${user.lastName}
                     </p>
                     <p className="profile-email">
                         {user.email}
