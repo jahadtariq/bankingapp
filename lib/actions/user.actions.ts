@@ -1,6 +1,6 @@
 'use server';
 
-import { ID } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
 import { createSessionClient,createAdminClient  } from "../appwrite";
 import { cookies } from "next/headers";
 import { encryptId, extractCustomerIdFromUrl, parseStringify } from "../utils";
@@ -30,69 +30,58 @@ export const signIn = async ({email, password}:signInProps) => {
     }
 }
 
-export const signUp = async (userData: SignUpParams) => {
-
-    // WE ARE DESTRUCTURING OUR PARAMETER OBJECT TO GET THE PARAMETERS WE NEED INSTEAD OF ALL PARAMETERS
-    const {email,password,firstName,lastName} = userData;
-
+export const signUp = async ({ password, ...userData }: SignUpParams) => {
+    const { email, firstName, lastName } = userData;
+    
     let newUserAccount;
-
+  
     try {
-        // CALLING THE APPWRITE FUNCTION TO CREATE AND RETURN AN ADMIN ACCOUNT API
-        const { account, database } = await createAdminClient();
-
-        // USING THE ADMIN ACCOUNT API TO CREATE A NEW USER ACCOUNT WITH 4 PARAMETERS WHICH ARE ID(UNIQUE FOR EACH USER), EMAIL, PASSWORD AND NAME(CONCATINATED HERE AS FIRSTNAME AND LASTNAME).
-        newUserAccount = await account.create(
-            ID.unique(),
-            email, 
-            password, 
-            `${firstName} ${lastName}`
-        );
-
-        if(!newUserAccount) throw new Error('Error creating user');
-
-        const dwollaCustomerUrl = await createDwollaCustomer({
-            ...userData,
-            type: 'personal'
-        })
-
-        if(!dwollaCustomerUrl) throw new Error("Errror creating dwolla customer");
-
-        const dwollaCustomerId = extractCustomerIdFromUrl(dwollaCustomerUrl);
-
-        const newUser = await database.createDocument(
-            DATABASE_ID!,
-            USER_COLLECTION_ID!,
-            ID.unique(),
-            {
-                ...userData,
-                userId: newUserAccount.$id,
-                dwollaCustomerId,
-                dwollaCustomerUrl
-            }
-        )
-
-        // AFTER THE USER IS CREATED WE HAVE TO CREATE SESSION FOR THE USER SO WE NOW WHCIH USER IS LOGGEDIN, WE CAN DO THIS USING APPWRITE FUCNTION CALLED createEmailPasswordSession(email,password) AND FINALLY WE ARE STORING THR SESSION IN CONSTANT VARIABLE
-        const session = await account.createEmailPasswordSession(email, password);
-
-        // SETTING THE CURRENT SESSION TO COOKIES OF APPLICATION THE cookies.set takes following parameters:
-        // 1. session name defined in server actions in appwrite while creating the session in appwrite function called createSessionClient
-        // 2. THE SECRET KEY FOR EACH SESSION WE CAN ACCESS IN THE VARIABLE WE GET FROM ABOVE
-        // 3. IS THE CONFIGURATION OBJECT WHICH DEFINES THE BASIC PARAMETERS FOR SETTING THE COOKIE
-        cookies().set("appwrite-session", session.secret, {
-            path: "/",
-            httpOnly: true,
-            sameSite: "strict",
-            secure: true,
-        });
-
-        // THE APPWRITE API RETURN THE USER OBJECT BUT WE CANNOT TRANSFER THE WHOLE OBJECT FROM SERVE TO CLIENT IN NEXTJS SO WE NEED TO STRINGIFY THE OBJECT
-        return parseStringify(newUserAccount);
-
+      const { account, database } = await createAdminClient();
+  
+      newUserAccount = await account.create(
+        ID.unique(), 
+        email, 
+        password, 
+        `${firstName} ${lastName}`
+      );
+  
+      if(!newUserAccount) throw new Error('Error creating user')
+  
+      const dwollaCustomerUrl = await createDwollaCustomer({
+        ...userData,
+        type: 'personal'
+      })
+  
+      if(!dwollaCustomerUrl) throw new Error('Error creating Dwolla customer')
+  
+      const dwollaCustomerId = extractCustomerIdFromUrl(dwollaCustomerUrl);
+  
+      const newUser = await database.createDocument(
+        DATABASE_ID!,
+        USER_COLLECTION_ID!,
+        ID.unique(),
+        {
+          ...userData,
+          userId: newUserAccount.$id,
+          dwollaCustomerId,
+          dwollaCustomerUrl
+        }
+      )
+  
+      const session = await account.createEmailPasswordSession(email, password);
+  
+      cookies().set("appwrite-session", session.secret, {
+        path: "/",
+        httpOnly: true,
+        sameSite: "strict",
+        secure: true,
+      });
+  
+      return parseStringify(newUser);
     } catch (error) {
-        console.log("Error",error);
+      console.error('Error', error);
     }
-}
+  }
 
 export async function getLoggedInUser() {
     try {
@@ -129,7 +118,7 @@ export const createLinkToken = async (user:User) => {
             user: {
                 client_user_id: user.$id
             },
-            client_name: user.name,
+            client_name: `${user.firstName} ${user.lastName}`,
             products: ['auth'] as Products[],
             language: 'en',
             country_codes: ['US'] as CountryCode[],
@@ -268,5 +257,45 @@ export const exchangePublicToken = async({
             
     } catch (error) {
         console.log('Error in exchnage public token', error);
+    }
+}
+
+export const getBanks = async(
+    {userId}:getBanksProps
+) => {
+    try {
+
+        const {database} = await createAdminClient();
+
+        const banks = await database.listDocuments(
+            DATABASE_ID!,
+            USER_BANK_ID!,
+            [Query.equal('userId',[userId])]
+        )
+
+        return parseStringify(banks.documents);
+        
+    } catch (error) {
+        console.log("Error while getting the banks",error);
+    }
+}
+
+export const getBank = async(
+    {documentId} : getBankProps
+) => {
+    try {
+
+        const {database} = await createAdminClient();
+
+        const bank = await database.listDocuments(
+            DATABASE_ID!,
+            USER_BANK_ID!,
+            [Query.equal('$id',[documentId])]
+        )
+
+        return parseStringify(bank.documents[0]);
+        
+    } catch (error) {
+        console.log("Error while fetching single bank", error);
     }
 }
