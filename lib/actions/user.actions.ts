@@ -330,3 +330,21 @@ export const getBank = async(
         console.log("Error while fetching single bank", error);
     }
 }
+
+export const getBankByAccountId = async ({ accountId }: getBankByAccountIdProps) => {
+    try {
+      const { database } = await createAdminClient();
+  
+      const bank = await database.listDocuments(
+        DATABASE_ID!,
+        USER_BANK_ID!,
+        [Query.equal('accountId', [accountId])]
+      )
+  
+      if(bank.total !== 1) return null;
+  
+      return parseStringify(bank.documents[0]);
+    } catch (error) {
+      console.log(error)
+    }
+  }
